@@ -5,7 +5,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Build output
-dist/
+# dist/  # Railway 배포를 위해 주석 처리
 build/
 
 # Logs

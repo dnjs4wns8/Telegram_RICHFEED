@@ -2,6 +2,36 @@
 
 트위터와 트루스소셜 RSS 피드를 통해 일론머스크와 도널드 트럼프의 새 게시글을 1분 간격으로 모니터링하는 Node.js 서비스입니다. RSS.app을 사용하여 안정적인 RSS 피드를 제공받습니다.
 
+## 🚀 Railway 자동 배포
+
+### 1. GitHub 저장소 준비
+```bash
+# 현재 변경사항을 GitHub에 푸시
+git add .
+git commit -m "Railway 배포 준비"
+git push origin main
+```
+
+### 2. Railway 프로젝트 생성
+1. **Railway 대시보드 접속**: https://railway.app/
+2. **"New Project" 클릭**
+3. **"Deploy from GitHub repo" 선택**
+4. **GitHub 저장소 연결**: `inflsnsmonitoring` 저장소 선택
+5. **"Deploy Now" 클릭**
+
+### 3. 환경변수 설정
+Railway 대시보드에서 다음 환경변수들을 설정하세요:
+
+- `RSS_APP_FEED_URL_ELON`: 일론머스크 RSS 피드 URL
+- `RSS_APP_FEED_URL_TRUMP`: 트럼프 RSS 피드 URL  
+- `RSS_APP_FEED_URL_MARKET`: 마켓리딩 RSS 피드 URL
+- `TELEGRAM_BOT_TOKEN`: 텔레그램 봇 토큰
+- `TELEGRAM_CHAT_ID`: 텔레그램 채널 ID
+
+### 4. 자동 배포 확인
+- GitHub에 코드를 푸시하면 자동으로 Railway에 배포됩니다
+- Railway 대시보드에서 배포 상태를 확인할 수 있습니다
+
 ## 기능
 
 - 🕐 **1분 간격 모니터링**: RSS.app 피드를 주기적으로 확인
