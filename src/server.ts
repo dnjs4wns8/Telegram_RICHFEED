@@ -13,25 +13,22 @@ class Server {
 
   private initializeServices(): void {
     try {
-      // 필수 환경변수 확인
-      const requiredEnvVars = [
+      // RSS.app 모니터링 서비스 초기화
+      const requiredRSSEnvVars = [
         'RSS_APP_FEED_URL_ELON',
-        'RSS_APP_FEED_URL_TRUMP', 
-        'RSS_APP_FEED_URL_MARKET',
+        'RSS_APP_FEED_URL_TRUMP',
         'TELEGRAM_BOT_TOKEN',
         'TELEGRAM_CHAT_ID'
       ];
 
-      const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+      const missingRSSVars = requiredRSSEnvVars.filter(varName => !process.env[varName]);
       
-      if (missingVars.length > 0) {
-        logger.warn('DEBUG: 일부 환경변수가 누락되었습니다', { missingVars });
-        // 환경변수가 없어도 HTTP 서버는 시작
-        return;
+      if (missingRSSVars.length > 0) {
+        logger.warn('DEBUG: RSS.app 모니터링을 위한 환경변수가 누락되었습니다', { missingRSSVars });
+      } else {
+        this.rssAppMonitor = new RSSAppMonitorService();
+        logger.info('DEBUG: RSSAppMonitorService가 초기화되었습니다');
       }
-
-      this.rssAppMonitor = new RSSAppMonitorService();
-      logger.info('DEBUG: RSSAppMonitorService가 초기화되었습니다');
 
     } catch (error) {
       logger.error('DEBUG: 서비스 초기화 중 오류 발생', {
