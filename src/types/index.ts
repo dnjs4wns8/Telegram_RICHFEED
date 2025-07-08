@@ -5,7 +5,7 @@ export interface Tweet {
   link: string;
   publishedAt: Date;
   author: string;
-  platform: 'twitter' | 'truthsocial';
+  platform: 'twitter' | 'truthsocial'; // truthsocial은 임시로 비활성화됨
 }
 
 export interface RSSFeedItem {
@@ -44,7 +44,7 @@ export interface RSSAppResponse {
 
 export interface AccountConfig {
   name: string;
-  platform: 'twitter' | 'truthsocial';
+  platform: 'twitter' | 'truthsocial'; // truthsocial은 임시로 비활성화됨
   rssAppFeedUrl: string;
   displayName: string;
 }

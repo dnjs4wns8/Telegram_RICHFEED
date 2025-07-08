@@ -251,13 +251,15 @@ export class RSSAppMonitorService {
       if (twitterMatch) {
         return twitterMatch[1];
       }
-    } else if (platform === 'truthsocial') {
-      // Truth Social URL에서 게시글 ID 추출
-      const truthSocialMatch = url.match(/\/posts\/([^\/]+)/);
-      if (truthSocialMatch) {
-        return truthSocialMatch[1];
-      }
     }
+    // Truth Social 관련 코드 임시 비활성화
+    // else if (platform === 'truthsocial') {
+    //   // Truth Social URL에서 게시글 ID 추출
+    //   const truthSocialMatch = url.match(/\/posts\/([^\/]+)/);
+    //   if (truthSocialMatch) {
+    //     return truthSocialMatch[1];
+    //   }
+    // }
     
     // 타임스탬프 기반 ID 생성
     return `${platform}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

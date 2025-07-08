@@ -8,7 +8,7 @@
 
 #### RSS.app 피드 URL
 - `TWITTER_RSS_APP_FEED_URL`: 일론머스크 트위터 RSS.app 피드 URL
-- `TRUTHSOCIAL_RSS_APP_FEED_URL`: 도널드 트럼프 트루스소셜 RSS.app 피드 URL
+- `TRUTHSOCIAL_RSS_APP_FEED_URL`: 도널드 트럼프 트루스소셜 RSS.app 피드 URL (현재 비활성화됨)
 
 #### 텔레그램 설정
 - `TELEGRAM_BOT_TOKEN`: 텔레그램 봇 토큰
@@ -34,7 +34,7 @@
 ```env
 # RSS.app 피드 URL
 TWITTER_RSS_APP_FEED_URL=https://rss.app/feeds/v1.1/your-elon-feed-id.json
-TRUTHSOCIAL_RSS_APP_FEED_URL=https://rss.app/feeds/v1.1/your-trump-feed-id.json
+# TRUTHSOCIAL_RSS_APP_FEED_URL=https://rss.app/feeds/v1.1/your-trump-feed-id.json  # 현재 비활성화됨
 
 # 텔레그램 설정
 TELEGRAM_BOT_TOKEN=your-bot-token
@@ -81,7 +81,7 @@ npm start
 ## 모니터링 대상
 
 - 일론머스크 (트위터)
-- 도널드 트럼프 (트루스소셜)
+- 도널드 트럼프 (트루스소셜) - 현재 비활성화됨
 
 ## 로그 확인
 
