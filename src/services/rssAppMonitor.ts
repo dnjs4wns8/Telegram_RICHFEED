@@ -3,35 +3,23 @@ import { logger } from '../utils/logger';
 import { config } from '../config';
 import { Tweet, RSSAppResponse, RSSAppFeedItem, AccountConfig } from '../types';
 import { TelegramService } from './telegramService';
-import * as fs from 'fs';
-import * as path from 'path';
+import { MySQLService } from './mysqlService';
 
 export class RSSAppMonitorService {
   private processedTweets: Map<string, Set<string>> = new Map(); // accountName -> Set of tweet IDs
   private lastCheckTime: Map<string, Date> = new Map(); // accountName -> last check time
   private telegramService: TelegramService;
-  private dataDir: string;
-  private processedTweetsFile: string;
+  private mysqlService: MySQLService;
 
   constructor() {
     // 텔레그램 서비스 초기화
     this.telegramService = new TelegramService();
     
-    // 데이터 디렉토리 설정 (Railway 볼륨 우선, 없으면 로컬)
-    this.dataDir = process.env.DATA_DIR || path.join(process.cwd(), 'data');
-    this.processedTweetsFile = path.join(this.dataDir, 'processed_tweets.json');
-    
-    // 데이터 디렉토리 생성
-    this.ensureDataDirectory();
-    
-    // 저장된 처리된 트윗 로드
-    this.loadProcessedTweets();
+    // MySQL 서비스 초기화
+    this.mysqlService = new MySQLService();
     
     // 각 계정별로 처리된 트윗 추적 초기화
     config.accounts.forEach(account => {
-      if (!this.processedTweets.has(account.name)) {
-        this.processedTweets.set(account.name, new Set());
-      }
       if (!this.lastCheckTime.has(account.name)) {
         this.lastCheckTime.set(account.name, new Date());
       }
@@ -41,20 +29,35 @@ export class RSSAppMonitorService {
   /**
    * 모니터링 시작
    */
-  public startMonitoring(): void {
-    logger.info('DEBUG: RSS.app 다중 계정 모니터링 서비스를 시작합니다', {
-      accountCount: config.accounts.length,
-      accounts: config.accounts.map(acc => `${acc.displayName} (${acc.platform})`),
-      checkInterval: `${config.checkInterval / 1000}초`
-    });
+  public async startMonitoring(): Promise<void> {
+    try {
+      // MySQL 데이터베이스 초기화
+      await this.mysqlService.initializeDatabase();
+      
+      // 처리된 트윗 데이터 로드
+      this.processedTweets = await this.mysqlService.getAllProcessedTweetIds();
+      
+      logger.info('DEBUG: RSS.app 다중 계정 모니터링 서비스를 시작합니다', {
+        accountCount: config.accounts.length,
+        accounts: config.accounts.map(acc => `${acc.displayName} (${acc.platform})`),
+        checkInterval: `${config.checkInterval / 1000}초`,
+        loadedProcessedTweets: Array.from(this.processedTweets.values()).reduce((sum, set) => sum + set.size, 0)
+      });
 
-    // 즉시 첫 번째 체크 실행
-    this.checkAllAccounts();
-
-    // 주기적 체크 설정
-    setInterval(() => {
+      // 즉시 첫 번째 체크 실행
       this.checkAllAccounts();
-    }, config.checkInterval);
+
+      // 주기적 체크 설정
+      setInterval(() => {
+        this.checkAllAccounts();
+      }, config.checkInterval);
+      
+    } catch (error) {
+      logger.error('DEBUG: 모니터링 시작 실패', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
   }
 
   /**
@@ -293,13 +296,13 @@ export class RSSAppMonitorService {
         logger.info('DEBUG: 텔레그램이 비활성화되어 있습니다');
       }
 
-      // 처리된 트윗으로 표시
+      // 처리된 트윗으로 표시 (메모리)
       const processedTweets = this.processedTweets.get(account.name) || new Set();
       processedTweets.add(tweet.id);
       this.processedTweets.set(account.name, processedTweets);
 
-      // 처리된 트윗을 파일에 저장
-      this.saveProcessedTweets();
+      // 처리된 트윗을 MySQL에 저장
+      await this.mysqlService.saveProcessedTweet(account.name, tweet.id, tweet.platform);
 
       logger.info('DEBUG: 트윗 처리 완료', {
         account: account.displayName,
@@ -337,77 +340,4 @@ export class RSSAppMonitorService {
     };
   }
 
-  /**
-   * 데이터 디렉토리 생성
-   */
-  private ensureDataDirectory(): void {
-    try {
-      if (!fs.existsSync(this.dataDir)) {
-        fs.mkdirSync(this.dataDir, { recursive: true });
-        logger.info('DEBUG: 데이터 디렉토리가 생성되었습니다', { dataDir: this.dataDir });
-      }
-    } catch (error) {
-      logger.error('DEBUG: 데이터 디렉토리 생성 실패', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  }
-
-  /**
-   * 처리된 트윗 로드
-   */
-  private loadProcessedTweets(): void {
-    try {
-      if (fs.existsSync(this.processedTweetsFile)) {
-        const data = fs.readFileSync(this.processedTweetsFile, 'utf8');
-        const savedData = JSON.parse(data);
-        
-        // Map과 Set으로 변환
-        Object.keys(savedData).forEach(accountName => {
-          this.processedTweets.set(accountName, new Set(savedData[accountName]));
-        });
-        
-        logger.info('DEBUG: 처리된 트윗 데이터를 로드했습니다', {
-          accountCount: this.processedTweets.size,
-          totalProcessedTweets: Array.from(this.processedTweets.values()).reduce((sum, set) => sum + set.size, 0)
-        });
-      } else {
-        logger.info('DEBUG: 처리된 트윗 데이터 파일이 없어 새로 시작합니다');
-      }
-    } catch (error) {
-      logger.error('DEBUG: 처리된 트윗 데이터 로드 실패', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  }
-
-  /**
-   * 처리된 트윗 저장
-   * 
-   * 향후 개선 방안:
-   * - Railway PostgreSQL 사용
-   * - MongoDB Atlas 사용  
-   * - Redis 사용
-   * - Supabase 사용
-   */
-  private saveProcessedTweets(): void {
-    try {
-      // Map과 Set을 JSON으로 변환
-      const dataToSave: Record<string, string[]> = {};
-      this.processedTweets.forEach((tweetSet, accountName) => {
-        dataToSave[accountName] = Array.from(tweetSet);
-      });
-      
-      fs.writeFileSync(this.processedTweetsFile, JSON.stringify(dataToSave, null, 2));
-      
-      logger.debug('DEBUG: 처리된 트윗 데이터를 저장했습니다', {
-        accountCount: this.processedTweets.size,
-        totalProcessedTweets: Array.from(this.processedTweets.values()).reduce((sum, set) => sum + set.size, 0)
-      });
-    } catch (error) {
-      logger.error('DEBUG: 처리된 트윗 데이터 저장 실패', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  }
 } 

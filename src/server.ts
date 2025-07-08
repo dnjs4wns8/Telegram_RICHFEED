@@ -15,8 +15,8 @@ class Server {
     try {
       // RSS.app 모니터링 서비스 초기화
       const requiredRSSEnvVars = [
-        'RSS_APP_FEED_URL_ELON',
-        'RSS_APP_FEED_URL_TRUMP',
+        'TWITTER_RSS_APP_FEED_URL',
+        'TRUTHSOCIAL_RSS_APP_FEED_URL',
         'TELEGRAM_BOT_TOKEN',
         'TELEGRAM_CHAT_ID'
       ];
@@ -38,7 +38,7 @@ class Server {
     }
   }
 
-  public start(): void {
+  public async start(): Promise<void> {
     try {
       // 로그 디렉토리 생성 (실패해도 계속 진행)
       try {
@@ -60,7 +60,7 @@ class Server {
       // RSS 모니터링 서비스가 초기화된 경우에만 시작
       if (this.rssAppMonitor) {
         try {
-          this.rssAppMonitor.startMonitoring();
+          await this.rssAppMonitor.startMonitoring();
           logger.info('DEBUG: RSS 모니터링이 시작되었습니다');
           
           // 상태 로깅 주기적 실행
