@@ -48,14 +48,32 @@ class TelegramService {
                 title: translatedTitle,
                 content: translatedContent
             }, accountName);
+            // 재시도 로직으로 메시지 전송
+            await this.sendMessageWithRetry(message, originalItem?.image, tweet.id, accountName);
+        }
+        catch (error) {
+            logger_1.logger.error('DEBUG: 텔레그램 메시지 전송 실패', {
+                tweetId: tweet.id,
+                accountName: accountName,
+                error: error instanceof Error ? error.message : String(error)
+            });
+        }
+    }
+    /**
+     * 재시도 로직을 포함한 메시지 전송
+     */
+    async sendMessageWithRetry(message, imageUrl, tweetId, accountName, retryCount = 0) {
+        const maxRetries = 3;
+        const baseDelay = 2000; // 2초
+        try {
             // 이미지가 있는 경우 이미지와 함께 메시지 전송
-            if (originalItem?.image) {
-                await this.bot.sendPhoto(process.env.TELEGRAM_CHAT_ID, originalItem.image, {
+            if (imageUrl) {
+                await this.bot.sendPhoto(process.env.TELEGRAM_CHAT_ID, imageUrl, {
                     caption: message,
                     parse_mode: 'HTML'
                 });
                 logger_1.logger.info('DEBUG: 텔레그램 이미지 메시지 전송 성공', {
-                    tweetId: tweet.id,
+                    tweetId: tweetId,
                     accountName: accountName,
                     hasImage: true,
                     translated: true
@@ -68,7 +86,7 @@ class TelegramService {
                     disable_web_page_preview: false
                 });
                 logger_1.logger.info('DEBUG: 텔레그램 텍스트 메시지 전송 성공', {
-                    tweetId: tweet.id,
+                    tweetId: tweetId,
                     accountName: accountName,
                     hasImage: false,
                     translated: true
@@ -76,12 +94,41 @@ class TelegramService {
             }
         }
         catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            // 429 에러 (Too Many Requests) 처리
+            if (errorMessage.includes('429') && retryCount < maxRetries) {
+                const retryAfter = this.extractRetryAfter(errorMessage);
+                const delay = retryAfter || (baseDelay * Math.pow(2, retryCount)); // 지수 백오프
+                logger_1.logger.warn('DEBUG: 텔레그램 API 제한으로 재시도 대기', {
+                    tweetId: tweetId,
+                    accountName: accountName,
+                    retryCount: retryCount + 1,
+                    delay: delay,
+                    error: errorMessage
+                });
+                // 지연 후 재시도
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return this.sendMessageWithRetry(message, imageUrl, tweetId, accountName, retryCount + 1);
+            }
+            // 다른 에러 또는 최대 재시도 횟수 초과
             logger_1.logger.error('DEBUG: 텔레그램 메시지 전송 실패', {
-                tweetId: tweet.id,
+                tweetId: tweetId,
                 accountName: accountName,
-                error: error instanceof Error ? error.message : String(error)
+                retryCount: retryCount,
+                error: errorMessage
             });
+            throw error;
         }
+    }
+    /**
+     * 429 에러에서 retry_after 값 추출
+     */
+    extractRetryAfter(errorMessage) {
+        const match = errorMessage.match(/retry after (\d+)/i);
+        if (match) {
+            return parseInt(match[1]) * 1000; // 초를 밀리초로 변환
+        }
+        return null;
     }
     formatTweetMessage(tweet, accountName) {
         const platform = tweet.platform === 'twitter' ? '🐦 트위터' : '🔴 트루스소셜';
