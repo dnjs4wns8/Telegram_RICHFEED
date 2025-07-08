@@ -68,7 +68,7 @@ class Server {
     }
     async start() {
         try {
-            // 로그 디렉토리 생성 (실패해도 계속 진행)
+            // 로그 디렉토리 생성 (로컬 환경에서만, 실패해도 계속 진행)
             try {
                 (0, logger_1.ensureLogDirectory)();
             }

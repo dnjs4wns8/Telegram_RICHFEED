@@ -85,6 +85,10 @@ npm start
 
 ## 로그 확인
 
+### 로컬 환경
 로그는 `logs/` 디렉토리에 저장됩니다:
 - `combined.log`: 모든 로그
-- `error.log`: 에러 로그만 
+- `error.log`: 에러 로그만
+
+### Railway 운영환경
+로그는 Railway 대시보드의 "Deployments" → "View Logs"에서 확인할 수 있습니다. 
