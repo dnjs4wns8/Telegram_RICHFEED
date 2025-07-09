@@ -46,7 +46,7 @@ class Server {
             // RSS.app 모니터링 서비스 초기화
             const requiredRSSEnvVars = [
                 'TWITTER_RSS_APP_FEED_URL',
-                'TRUTHSOCIAL_RSS_APP_FEED_URL',
+                'LEEJAEMYUNG_RSS_APP_FEED_URL',
                 'TELEGRAM_BOT_TOKEN',
                 'TELEGRAM_CHAT_ID'
             ];

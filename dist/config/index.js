@@ -15,6 +15,12 @@ exports.config = {
             rssAppFeedUrl: process.env.TWITTER_RSS_APP_FEED_URL || 'https://rss.app/feeds/v1.1/your-twitter-feed-id.json',
             displayName: '일론머스크 (트위터)'
         },
+        {
+            name: 'LeeJaeMyung',
+            platform: 'twitter',
+            rssAppFeedUrl: process.env.LEEJAEMYUNG_RSS_APP_FEED_URL || 'https://rss.app/feeds/v1.1/your-leejaemyung-feed-id.json',
+            displayName: '이재명 (트위터)'
+        },
         // 트럼프 Truth Social 계정 임시 비활성화
         // {
         //   name: 'realDonaldTrump',
