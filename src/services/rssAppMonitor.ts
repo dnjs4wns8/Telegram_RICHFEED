@@ -188,7 +188,7 @@ export class RSSAppMonitorService {
           id: firstItem.id,
           title: firstItem.title,
           url: firstItem.url,
-          content_text: firstItem.content_text?.substring(0, 100) + '...',
+          content_text: firstItem.content_text,
           date_published: firstItem.date_published,
           authors: firstItem.authors
         }

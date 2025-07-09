@@ -155,6 +155,14 @@ class Translator {
             });
             // 강제 번역 실행
             const translatedText = await this.forceTranslate(plainText);
+            // 번역 전후 길이 상세 로깅
+            logger_1.logger.info('DEBUG: 번역 전후 상세 정보', {
+                plainTextLength: plainText.length,
+                translatedTextLength: translatedText.length,
+                plainTextPreview: plainText.substring(0, 100) + '...',
+                translatedTextPreview: translatedText.substring(0, 100) + '...',
+                isTruncated: translatedText.length < plainText.length
+            });
             return translatedText;
         }
         catch (error) {

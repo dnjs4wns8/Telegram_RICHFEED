@@ -56,6 +56,15 @@ export class TelegramService {
         content: translatedContent
       }, accountName);
       
+      // 텔레그램 전송 전 메시지 길이 로깅
+      logger.info('DEBUG: 텔레그램 전송 전 메시지 정보', {
+        tweetId: tweet.id,
+        accountName: accountName,
+        messageLength: message.length,
+        messagePreview: message,
+        hasImage: !!originalItem?.image
+      });
+      
       // 재시도 로직으로 메시지 전송
       await this.sendMessageWithRetry(message, originalItem?.image, tweet.id, accountName);
 
@@ -149,20 +158,30 @@ export class TelegramService {
   }
 
   private formatTweetMessage(tweet: Tweet, accountName: string): string {
-    const platform = tweet.platform === 'twitter' ? '🐦 트위터' : '🔴 트루스소셜';
+    // 계정별 표시명 매핑
+    let displayName = accountName;
+    if (accountName === '이재명 (트위터)') {
+      displayName = '대한민국 대통령실 📢';
+    } else if (accountName === '일론머스크 (트위터)') {
+      displayName = 'Elon musk 📢';
+    }
     
-    // 번역된 콘텐츠 사용
-    const content = tweet.content.length > 3000 
-      ? tweet.content.substring(0, 3000) + '...' 
-      : tweet.content;
+    // 원본 콘텐츠 그대로 사용 (길이 제한 없음)
+    const content = tweet.content;
 
     // HTML 태그 정리 (텔레그램에서 지원하는 태그만 사용)
     const cleanContent = this.cleanHtmlContent(content);
+    
+    // HTML 정리 전후 길이 로깅
+    logger.info('DEBUG: HTML 정리 전후 길이', {
+      originalContentLength: content.length,
+      cleanContentLength: cleanContent.length,
+      contentPreview: content.substring(0, 100) + '...',
+      cleanContentPreview: cleanContent.substring(0, 100) + '...'
+    });
 
     return `
-<b>${platform} - ${accountName}</b>
-
-📝 <b>${tweet.title}</b>
+<b>${displayName}</b>
 
 ${cleanContent}
 
