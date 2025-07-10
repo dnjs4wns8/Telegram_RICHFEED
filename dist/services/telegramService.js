@@ -34,27 +34,33 @@ class TelegramService {
             // 콘텐츠 번역 (강제 번역)
             const translatedContent = await this.translator.translateHtmlContent(tweet.content);
             const translatedTitle = await this.translator.translateIfNeeded(tweet.title);
+            // 영어 원문인지 확인 (번역이 실제로 이루어졌는지)
+            const isEnglishOriginal = this.isEnglishText(tweet.content);
+            const isTranslated = translatedContent !== tweet.content;
             logger_1.logger.info('DEBUG: 번역 완료', {
                 tweetId: tweet.id,
                 originalTitle: tweet.title,
                 translatedTitle: translatedTitle,
                 originalContentLength: tweet.content.length,
                 translatedContentLength: translatedContent.length,
-                translatedContent: translatedContent.substring(0, 100) + '...'
+                translatedContent: translatedContent.substring(0, 100) + '...',
+                isEnglishOriginal: isEnglishOriginal,
+                isTranslated: isTranslated
             });
             // 번역된 콘텐츠로 메시지 생성
             const message = this.formatTweetMessage({
                 ...tweet,
                 title: translatedTitle,
                 content: translatedContent
-            }, accountName);
+            }, accountName, isEnglishOriginal && isTranslated, tweet.content); // 원본 영어 내용 전달
             // 텔레그램 전송 전 메시지 길이 로깅
             logger_1.logger.info('DEBUG: 텔레그램 전송 전 메시지 정보', {
                 tweetId: tweet.id,
                 accountName: accountName,
                 messageLength: message.length,
-                messagePreview: message,
-                hasImage: !!originalItem?.image
+                messagePreview: message.substring(0, 200) + '...',
+                hasImage: !!originalItem?.image,
+                showBothLanguages: isEnglishOriginal && isTranslated
             });
             // 재시도 로직으로 메시지 전송
             await this.sendMessageWithRetry(message, originalItem?.image, tweet.id, accountName);
@@ -138,14 +144,14 @@ class TelegramService {
         }
         return null;
     }
-    formatTweetMessage(tweet, accountName) {
+    formatTweetMessage(tweet, accountName, showBothLanguages = false, originalEnglishContent) {
         // 계정별 표시명 매핑
         let displayName = accountName;
         if (accountName === '이재명 (트위터)') {
-            displayName = '대한민국 대통령실 📢';
+            displayName = '대한민국 대통령실 🔊';
         }
         else if (accountName === '일론머스크 (트위터)') {
-            displayName = 'Elon musk 📢';
+            displayName = 'Elon musk 🔊';
         }
         // 원본 콘텐츠 그대로 사용 (길이 제한 없음)
         const content = tweet.content;
@@ -156,8 +162,34 @@ class TelegramService {
             originalContentLength: content.length,
             cleanContentLength: cleanContent.length,
             contentPreview: content.substring(0, 100) + '...',
-            cleanContentPreview: cleanContent.substring(0, 100) + '...'
+            cleanContentPreview: cleanContent.substring(0, 100) + '...',
+            showBothLanguages: showBothLanguages
         });
+        // 영어 원문과 한글 번역을 모두 표시하는 경우
+        if (showBothLanguages && originalEnglishContent) {
+            const originalContent = this.cleanHtmlContent(originalEnglishContent); // 원본 영어
+            const translatedContent = this.cleanHtmlContent(tweet.content); // 번역된 한글
+            return `
+<b>${displayName}</b>
+
+🇺🇸 <b>영어 원문:</b>
+${originalContent}
+
+🇰🇷 <b>한글 번역:</b>
+${translatedContent}
+
+🔗 <a href="${tweet.link}">원문 보기</a>
+
+⏰ ${tweet.publishedAt.toLocaleString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            })}
+      `.trim();
+        }
+        // 기존 방식 (한글만 표시)
         return `
 <b>${displayName}</b>
 
@@ -188,6 +220,18 @@ ${cleanContent}
             .replace(/&quot;/g, '"') // &quot;를 "로
             .replace(/&#39;/g, "'") // &#39;를 '로
             .trim();
+    }
+    /**
+     * 영어 텍스트인지 확인
+     */
+    isEnglishText(text) {
+        if (!text || text.trim() === '') {
+            return false;
+        }
+        // 영어 문자가 50% 이상인지 확인
+        const englishChars = text.match(/[a-zA-Z]/g)?.length || 0;
+        const totalChars = text.replace(/\s/g, '').length;
+        return totalChars > 0 && (englishChars / totalChars) > 0.5;
     }
     isEnabled() {
         return !!this.bot;

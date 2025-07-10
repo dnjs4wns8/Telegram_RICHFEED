@@ -14,6 +14,10 @@ export declare class TelegramService {
     private extractRetryAfter;
     private formatTweetMessage;
     private cleanHtmlContent;
+    /**
+     * 영어 텍스트인지 확인
+     */
+    private isEnglishText;
     isEnabled(): boolean;
 }
 //# sourceMappingURL=telegramService.d.ts.map
